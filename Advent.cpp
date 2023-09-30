@@ -13,6 +13,41 @@
 using namespace std;
 #define print(sol) (cout << "Solution is : " << sol << '\n') 
 
+struct node {
+    node() {};
+    string name;
+    string parent;
+    string grandparent;
+    vector<node*> sons;
+    long long sz;
+    node(string name, string parent,string grandparent, long long sz) {
+        this->name = name;
+        this->parent = parent;
+        this->sz = sz;
+        this->grandparent = grandparent;
+    }
+    void addSon(node* son) {
+        sons.push_back(son);
+    }
+};
+
+long long treeSum2(node& v) {
+    if (v.sons.size() == 0)return 0;
+    long long sum = 0;
+    if (v.sz <= 100000 && v.name != "root")sum += v.sz;
+    for (auto son : v.sons) {
+        sum += treeSum2(*son);
+    }
+    return sum;
+}
+
+long long treeSum(node& v) {
+    for (auto son : v.sons) {
+        v.sz += treeSum(*son);
+    }
+    return v.sz;
+}
+
 vector<int> nearestBigger(vector<int> v) { //returning the distances
     int n = v.size();
     for (int i = 0; i < n; i++)v[i] *= -1;
@@ -160,6 +195,117 @@ void day8() {
     }
 
     print(goodTrees.size());
+}
+
+void day7V2() {
+    ifstream inputFile;
+    string line;
+
+    long long result = 0;
+    inputFile.open("inputFile.txt");
+
+    node root = node("root", "root", "root", 0);
+    map<pair<string, string>, node*> m; //It's possible to have 2 directories of the same name with differents parents.
+    m[{"root", "root"}] = &root;
+
+
+    node* current = &root;
+    while (getline(inputFile, line)) { // Generating the tree.
+        if (line[0] == '$') {
+            vector<string> parts;
+            stringstream ss(line);
+            string token;
+            while (getline(ss, token, ' ')) {
+                parts.push_back(token);
+            }
+
+            if (parts.size() == 3) { // i.e. we're using cd
+                if (parts[2] == "..") current = m[{current->parent, current->grandparent}];
+                else {
+                    if (parts[2] == "/") continue;
+                    if (m.count({ parts[2],current->name }) == 0) {
+                        m[{parts[2], current->name}] = new node(parts[2], current->name, current->parent, 0);
+                    }
+                    current = m[{parts[2], current->name}];
+                }
+            }
+        }
+        else { // A new son to current.
+            vector<string> parts;
+            stringstream ss(line);
+            string token;
+            while (getline(ss, token, ' ')) {
+                parts.push_back(token);
+            }
+            int sz = 0;
+            if (parts[0] != "dir") sz = stoi(parts[0]);
+            node* son = new node(parts[1], current->name, current->parent, sz); // Create a new son on the heap
+            m[{parts[1], current->name}] = son;
+            current->addSon(son); // Add the son using the pointer
+        }
+    }
+    inputFile.close();
+    treeSum(root);
+    long long target = root.sz-40000000;
+    long long mini = root.sz;
+    for (auto it : m) {
+        if (it.second->sz > target && it.second->sons.size()>0) {
+            mini = min(it.second->sz, mini);
+        }
+    }
+    print(mini);
+}
+
+void day7() {
+    ifstream inputFile;
+    string line;
+
+    long long result = 0;
+    inputFile.open("inputFile.txt");
+
+    node root = node("root", "root" , "root", 0);
+    map<pair<string,string>, node*> m; //It's possible to have 2 directories of the same name with differents parents.
+    m[{"root", "root"}] = &root;
+    
+
+    node* current = &root;
+    while (getline(inputFile, line)) { // Generating the tree.
+        if (line[0] == '$') {
+            vector<string> parts;
+            stringstream ss(line);
+            string token;
+            while (getline(ss, token, ' ')) {
+                parts.push_back(token);
+            }
+
+            if (parts.size() == 3) { // i.e. we're using cd
+                if (parts[2] == "..") current = m[{current->parent, current->grandparent}];
+                else {
+                    if (parts[2] == "/") continue;
+                    if (m.count({parts[2],current->name}) == 0) {
+                        m[{parts[2], current->name}] = new node(parts[2], current->name,current->parent, 0);
+                    }
+                    current = m[{parts[2], current->name}];
+                }
+            }
+        }
+        else { // A new son to current.
+            vector<string> parts;
+            stringstream ss(line);
+            string token;
+            while (getline(ss, token, ' ')) {
+                parts.push_back(token);
+            }
+            int sz = 0;
+            if (parts[0] != "dir") sz = stoi(parts[0]);
+            node* son = new node(parts[1], current->name, current->parent, sz); // Create a new son on the heap
+            m[{parts[1], current->name}] = son;
+            current->addSon(son); // Add the son using the pointer
+        }
+    }
+    inputFile.close();
+    treeSum(root);
+    print(treeSum2(root));
 }
 
 void day6V2() {
@@ -490,5 +636,5 @@ void day1() {
 int main()
 {
     ios::sync_with_stdio(0); cin.tie(0); cout.tie(0);
-    day8V2();
+    day7V2();
 }
